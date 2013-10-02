@@ -34,8 +34,8 @@ stepBall : Time -> Bool -> Int -> Int -> Ball -> Ball
 stepBall dt spacebar lr ud ({x, y, dx, dy} as b) =
   let dx' = if lr /= 0 then lr else dx
       dy' = if ud /= 0 then ud else dy
-      x' = x + (toFloat dx' * 300 * dt)
-      y' = y + (toFloat dy' * 300 * dt)
+      x' = x + (toFloat dx' * 500 * dt)
+      y' = y + (toFloat dy' * 500 * dt)
       -- c' = if spacebar then red else blue
   in if spacebar
      then {b | dx <- 0,
@@ -48,8 +48,14 @@ stepBall dt spacebar lr ud ({x, y, dx, dy} as b) =
                    (y' >= (halfGameHeight - boundrySize))
                 then y
                 else y',
-            dx = dx',
-            dy = dy' }
+            dx = if (x' <= (-halfGameWidth + boundrySize)) ||
+                   (x' >= (halfGameWidth - boundrySize))
+                 then -dx
+                 else dx',
+            dy = if (y' <= (-halfGameHeight + boundrySize)) ||
+                   (y' >= (halfGameHeight - boundrySize))
+                 then -dy
+                 else dy'}
 
 stepGame : Input -> Game -> Game
 stepGame {dt, spacebar, lr, ud} ({b} as game) =
