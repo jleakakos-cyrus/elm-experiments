@@ -8,20 +8,23 @@ ballSize                     = 15
 boundrySize                  = 2 * ballSize
 
 -- Model
-type Input = { dt: Time, spacebar: bool, lr: Int, ud: Int }
+type Input = { dt: Time, spacebar: Bool, lr: Int, ud: Int }
 
 type Ball = { x: Float, y: Float, dx: Int, dy: Int }
 
-type Game = { b: Ball }
+type Game = { b: Ball, c: Ball }
 
 defaultInput : Input
 defaultInput = { dt = 0, spacebar = False, lr = 0, ud = 0 }
 
 defaultBall : Ball
-defaultBall = { x = 0, y = 0, dx = 0, dy = 0 }
+defaultBall = { x = 0, y = 0, dx = 0, dy = 1 }
+
+secondBall : Ball
+secondBall = { x = 0, y = 0, dx = 1, dy = 0 }
 
 defaultGame : Game
-defaultGame = { b = defaultBall }
+defaultGame = { b = defaultBall, c = secondBall }
 
 input = sampleOn delta (lift4 Input delta
                               Keyboard.space 
@@ -58,8 +61,9 @@ stepBall dt spacebar lr ud ({x, y, dx, dy} as b) =
                  else dy'}
 
 stepGame : Input -> Game -> Game
-stepGame {dt, spacebar, lr, ud} ({b} as game) =
-  {game | b <- stepBall dt spacebar lr ud b}
+stepGame {dt, spacebar, lr, ud} ({b, c} as game) =
+  {game | b <- stepBall dt spacebar lr ud b,
+          c <- stepBall dt spacebar lr ud c}
 
 gameState = foldp stepGame defaultGame input
 
@@ -70,7 +74,7 @@ textGreen = rgb 160 200 160
 txt f = text . f . monospace . Text.color textGreen . toText
 
 display : (Int, Int) -> Input -> Game -> Element
-display (w, h) input ({b} as game) = 
+display (w, h) input ({b, c} as game) = 
   flow down 
   [
     asText <| "x: " ++ show (.x b) ++
@@ -80,7 +84,8 @@ display (w, h) input ({b} as game) =
     container w (h-100) middle <|
       collage gameWidth gameHeight <|
         [ filled pongGreen <| rect gameWidth gameHeight,
-          move (.x b, .y b) <| filled grey <| circle ballSize
+          move (.x b, .y b) <| filled grey <| circle ballSize,
+          move (.x c, .y c) <| filled grey <| circle ballSize
         ]
   ]
 
