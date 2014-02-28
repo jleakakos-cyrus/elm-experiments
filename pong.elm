@@ -11,11 +11,15 @@ boundrySize                  = 2 * ballSize
 type Input = { dt: Time, spacebar: Bool, lr: Int, ud: Int }
 
 type Ball = { x: Float, y: Float, dx: Int, dy: Int }
+type Paddle = { x: Float, y: Float, dy: Int }
 
-type Game = { bs: [Ball] }
+type Game = { bs: [Ball], p: Paddle }
 
 defaultInput : Input
 defaultInput = { dt = 0, spacebar = False, lr = 0, ud = 0 }
+
+defaultPaddle : Paddle
+defaultPaddle = { x = 50, y = 0, dy = 0 }
 
 defaultBall : Ball
 defaultBall = { x = 0, y = 0, dx = 0, dy = 1 }
@@ -27,7 +31,8 @@ thirdBall : Ball
 thirdBall = { x = 0, y = 0, dx = -1, dy = 1 }
 
 defaultGame : Game
-defaultGame = { bs = [defaultBall, secondBall, thirdBall] }
+defaultGame = { bs = [defaultBall, secondBall, thirdBall],
+                p = defaultPaddle }
 
 input = sampleOn delta (lift4 Input delta
                               Keyboard.space 
@@ -63,9 +68,25 @@ stepBall dt spacebar lr ud ({x, y, dx, dy} as b) =
                  then -dy
                  else dy'}
 
+stepPaddle : Time -> Bool -> Int -> Paddle -> Paddle
+stepPaddle dt spacebar ud ({x, y, dy} as p) =
+  let dy' = if ud /= 0 then ud else dy
+      y' = y + (toFloat dy' * 500 * dt)
+  in if spacebar
+    then { p | dy <- 0 }
+    else { p | y <- if (y' <= (-halfGameHeight + boundrySize)) ||
+                      (y' >= (halfGameHeight - boundrySize))
+                   then y
+                   else y',
+               dy <- if (y' <= (-halfGameHeight + boundrySize)) ||
+                       (y' >= (halfGameHeight - boundrySize))
+                    then -dy
+                    else dy'}
+
 stepGame : Input -> Game -> Game
-stepGame {dt, spacebar, lr, ud} ({bs} as game) =
-  {game | bs <- map (stepBall dt spacebar lr ud) bs }
+stepGame {dt, spacebar, lr, ud} ({bs, p} as game) =
+  {game | bs <- map (stepBall dt spacebar lr ud) bs,
+          p <- stepPaddle dt spacebar ud p}
 
 gameState = foldp stepGame defaultGame input
 
@@ -76,12 +97,13 @@ textGreen = rgb 160 200 160
 txt f = text . f . monospace . Text.color textGreen . toText
 
 display : (Int, Int) -> Input -> Game -> Element
-display (w, h) input ({bs} as game) = 
+display (w, h) input ({bs, p} as game) = 
   flow down 
   [
     container w (h-100) middle <|
       collage gameWidth gameHeight <|
-        [ filled pongGreen <| rect gameWidth gameHeight ] ++ 
+        [ rect gameWidth gameHeight |> filled pongGreen,
+          move (.x p, .y p) <| filled grey <| rect 20 100] ++ 
         map (\b -> move (.x b, .y b) <| filled grey <| circle ballSize) bs
         
   ]
